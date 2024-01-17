@@ -1,0 +1,235 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 1
+    upAxis = "Y"
+)
+
+def Xform "Root"
+{
+    reorder nameChildren = ["pane", "Cube"]
+    rel material:binding = None (
+        bindMaterialAs = "weakerThanDescendants"
+    )
+
+    def Cube "Cube" (
+        active = false
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </Glass> (
+            bindMaterialAs = "weakerThanDescendants"
+        )
+        double size = 0.2
+        float3 xformOp:scale = (1, 1, 1)
+        float3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    def "pane" (
+        active = true
+        prepend references = @pane.usdz@
+    )
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.2, 0.2, 0.01)
+        float3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        over "Materials" (
+            active = false
+        )
+        {
+            over "defaultMaterial"
+            {
+                token outputs:mtlx:surface
+                token outputs:realitykit:vertex
+            }
+        }
+
+        over "Mesh" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            rel material:binding = </Glass> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
+            float3 xformOp:scale = (1, 1, 1)
+            float3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+        }
+    }
+}
+
+def Material "Glass"
+{
+    token outputs:mtlx:surface.connect = </Glass/PreviewSurface.outputs:out>
+    token outputs:realitykit:vertex.connect = </Glass/GeometryModifier.outputs:out>
+    string[] ui:nodegraph:realitykit:node:attributesShowingChildren = ["outputs:realitykit:vertex"]
+    float2 ui:nodegraph:realitykit:subgraphOutputs:pos = (866.38416, -102.813896)
+    float2 ui:nodegraph:realitykit:subgraphOutputs:size = (181.5, 99)
+    int ui:nodegraph:realitykit:subgraphOutputs:stackingOrder = 282
+
+    def Shader "SurfaceViewDirection"
+    {
+        uniform token info:id = "ND_realitykit_surface_view_direction"
+        float3 outputs:viewDirection
+        float2 ui:nodegraph:node:pos = (-408.13394, -91.15593)
+        float2 ui:nodegraph:node:size = (216.5, 81)
+        int ui:nodegraph:node:stackingOrder = 396
+        string[] ui:nodegraph:realitykit:node:attributesShowingChildren = []
+    }
+
+    def Shader "Normal"
+    {
+        uniform token info:id = "ND_normal_vector3"
+        string inputs:space = "world"
+        float3 outputs:out
+        float2 ui:nodegraph:node:pos = (-330.78903, 56.42404)
+        float2 ui:nodegraph:node:size = (128.5, 40)
+        int ui:nodegraph:node:stackingOrder = 389
+    }
+
+    def Shader "Refract"
+    {
+        uniform token info:id = "ND_realitykit_refract_vector3"
+        float inputs:eta = 0.752
+        float3 inputs:in = (0, 0, 0)
+        float3 inputs:in.connect = </Glass/Multiply.outputs:out>
+        float3 inputs:normal.connect = </Glass/Normal.outputs:out>
+        float3 outputs:out
+        float2 ui:nodegraph:node:pos = (-32.90643, -63.44515)
+        float2 ui:nodegraph:node:size = (141, 145)
+        int ui:nodegraph:node:stackingOrder = 415
+        string[] ui:nodegraph:realitykit:node:attributesShowingChildren = ["inputs:in", "inputs:in"]
+    }
+
+    def Shader "RealitykitEnvironmentRadiance"
+    {
+        uniform token info:id = "ND_realitykit_environment_radiance"
+        color3f inputs:baseColor = (0, 0, 0) (
+            colorSpace = "srgb_texture"
+        )
+        half inputs:metallic = 1.5
+        float3 inputs:normal.connect = </Glass/Refract.outputs:out>
+        half inputs:roughness = 0
+        half inputs:specular = 0
+        color3f outputs:diffuseRadiance
+        color3f outputs:specularRadiance
+        float2 ui:nodegraph:node:pos = (223.19023, -62.640217)
+        float2 ui:nodegraph:node:size = (244.5, 199)
+        int ui:nodegraph:node:stackingOrder = 436
+        string[] ui:nodegraph:realitykit:node:attributesShowingChildren = ["inputs:specular", "inputs:metallic", "inputs:metallic", "inputs:roughness", "inputs:roughness", "inputs:baseColor"]
+    }
+
+    def Shader "PreviewSurface"
+    {
+        uniform token info:id = "ND_UsdPreviewSurface_surfaceshader"
+        float inputs:clearcoat = 0
+        float inputs:clearcoatRoughness = 0
+        color3f inputs:diffuseColor.connect = None
+        color3f inputs:emissiveColor.connect = </Glass/RealitykitEnvironmentRadiance.outputs:specularRadiance>
+        float inputs:metallic = 1
+        float3 inputs:normal.connect = </Glass/Remap.outputs:out>
+        float inputs:occlusion
+        float inputs:opacity
+        float inputs:opacityThreshold
+        float inputs:roughness = 0
+        token outputs:out
+        float2 ui:nodegraph:node:pos = (566.34186, -23.429531)
+        float2 ui:nodegraph:node:size = (148.5, 199)
+        int ui:nodegraph:node:stackingOrder = 424
+        string[] ui:nodegraph:realitykit:node:attributesShowingChildren = ["inputs:roughness", "inputs:metallic", "inputs:roughness", "inputs:metallic"]
+    }
+
+    def Shader "Multiply"
+    {
+        uniform token info:id = "ND_multiply_vector3"
+        float3 inputs:in1.connect = </Glass/SurfaceViewDirection.outputs:viewDirection>
+        float3 inputs:in2
+        float3 outputs:out
+        float2 ui:nodegraph:node:pos = (-182.63165, -110.15208)
+        float2 ui:nodegraph:node:size = (60, 36)
+        int ui:nodegraph:node:stackingOrder = 376
+    }
+
+    def Shader "Remap"
+    {
+        uniform token info:id = "ND_remap_vector3"
+        float3 inputs:in.connect = </Glass/Image.outputs:out>
+        float3 inputs:inhigh
+        float3 inputs:inlow
+        float3 inputs:outhigh
+        float3 inputs:outlow = (-1, -1, -1)
+        float3 outputs:out
+        float2 ui:nodegraph:node:pos = (340.3139, -369.4586)
+        float2 ui:nodegraph:node:size = (94, 181)
+        int ui:nodegraph:node:stackingOrder = 416
+    }
+
+    def Shader "GeometryModifier"
+    {
+        uniform token info:id = "ND_realitykit_geometrymodifier_vertexshader"
+        float3 inputs:bitangent
+        color4f inputs:color
+        float3 inputs:modelPositionOffset.connect = </Glass/Remap_1.outputs:out>
+        float3 inputs:normal.connect = </Glass/Remap.outputs:out>
+        float4 inputs:userAttribute
+        half2 inputs:userAttributeHalf2_0
+        half2 inputs:userAttributeHalf2_1
+        half4 inputs:userAttributeHalf4_0
+        half4 inputs:userAttributeHalf4_1
+        half4 inputs:userAttributeHalf4_2
+        half4 inputs:userAttributeHalf4_3
+        float2 inputs:uv0
+        float2 inputs:uv1
+        token outputs:out
+        float2 ui:nodegraph:node:pos = (465.68823, 317.09903)
+        float2 ui:nodegraph:node:size = (196.5, 325)
+        int ui:nodegraph:node:stackingOrder = 408
+        string[] ui:nodegraph:realitykit:node:attributesShowingChildren = ["inputs:modelPositionOffset", "inputs:color", "inputs:normal", "inputs:modelPositionOffset"]
+    }
+
+    def Shader "Image"
+    {
+        uniform token info:id = "ND_image_vector3"
+        asset inputs:file = @FlutedNormals.png@
+        string inputs:filtertype
+        string inputs:uaddressmode = "periodic"
+        string inputs:vaddressmode = "periodic"
+        float3 outputs:out
+        float2 ui:nodegraph:node:pos = (126.423035, -417.2386)
+        float2 ui:nodegraph:node:size = (148.5, 199)
+        int ui:nodegraph:node:stackingOrder = 447
+        string[] ui:nodegraph:realitykit:node:attributesShowingChildren = ["inputs:default", "inputs:texcoord", "inputs:default", "inputs:texcoord"]
+    }
+
+    def Shader "Image_1"
+    {
+        uniform token info:id = "ND_image_vector3"
+        asset inputs:file = @flutedheights.png@
+        string inputs:filtertype
+        string inputs:uaddressmode = "periodic"
+        string inputs:vaddressmode = "periodic"
+        float3 outputs:out
+        float2 ui:nodegraph:node:pos = (-74.91888, 160.76524)
+        float2 ui:nodegraph:node:size = (148.5, 199)
+        int ui:nodegraph:node:stackingOrder = 444
+        string[] ui:nodegraph:realitykit:node:attributesShowingChildren = ["inputs:uaddressmode"]
+    }
+
+    def Shader "Remap_1"
+    {
+        uniform token info:id = "ND_remap_vector3"
+        float3 inputs:in.connect = </Glass/Image_1.outputs:out>
+        float3 inputs:inhigh = (1, 1, 1)
+        float3 inputs:inlow
+        float3 inputs:outhigh = (0, 0, 3)
+        float3 inputs:outlow
+        float3 outputs:out
+        float2 ui:nodegraph:node:pos = (169.52722, 252.31467)
+        float2 ui:nodegraph:node:size = (105.5, 181)
+        int ui:nodegraph:node:stackingOrder = 410
+    }
+}
+
